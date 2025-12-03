@@ -1,0 +1,22 @@
+image: "pi-estimator"
+imagePullPolicy: Never
+
+resultDir: "/results"
+
+pvc:
+  name: pi-results-pvc
+  size: 1Gi
+  accessMode: ReadWriteMany
+
+rbac:
+  serviceAccount: pi-reducer-sa
+  role: pi-reducer-role
+  roleBinding: pi-reducer-binding
+
+workers:
+  jobName: pi-workers
+  count: 4
+  pointsPerWorker: "200000"
+
+reducer:
+  jobName: pi-reducer

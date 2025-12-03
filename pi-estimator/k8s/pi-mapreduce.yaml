@@ -1,0 +1,76 @@
+# -------------------------------------------------------
+# Persistent Volume Claim (shared across workers & reducer)
+# -------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pi-results-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# -------------------------------------------------------
+# Worker Job (4 Pods in parallel)
+# -------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-workers
+spec:
+  completions: 4
+  parallelism: 4
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: worker
+          image: pi-estimator
+          imagePullPolicy: Never
+          command: ["python", "/app/worker.py"]
+          env:
+            - name: POINTS_PER_WORKER
+              value: "200000"
+            - name: RESULT_DIR
+              value: "/results"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: pi-results-pvc
+
+---
+# -------------------------------------------------------
+# Reducer Job (1 Pod)
+# -------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-reducer
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: reducer
+          image: pi-estimator
+          imagePullPolicy: Never
+          command: ["python", "/app/reducer.py"]
+          env:
+            - name: RESULT_DIR
+              value: "/results"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: pi-results-pvc
+

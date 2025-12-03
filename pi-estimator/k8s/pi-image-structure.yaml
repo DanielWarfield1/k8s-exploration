@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-image-structure
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: explorer
+        image: pi-estimator:latest
+        imagePullPolicy: Never
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "=== DIRECTORY LISTING OF /app (detailed) ===";
+            ls -alh /app;
+            echo;
+            echo "=== RECURSIVE LISTING OF /app ===";
+            ls -R /app;
+            echo;
+            echo "=== TREE VIEW OF /app (manual) ===";
+            find /app -printf "%p\n";
+            echo "=== DONE ===";
+

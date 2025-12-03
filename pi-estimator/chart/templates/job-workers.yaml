@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.workers.jobName }}
+spec:
+  completions: {{ .Values.workers.count }}
+  parallelism: {{ .Values.workers.count }}
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: worker
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["python", "/app/worker.py"]
+          env:
+            - name: POINTS_PER_WORKER
+              value: "{{ .Values.workers.pointsPerWorker }}"
+            - name: RESULT_DIR
+              value: "{{ .Values.resultDir }}"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.name }}

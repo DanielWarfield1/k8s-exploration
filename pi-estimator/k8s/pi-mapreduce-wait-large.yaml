@@ -1,0 +1,136 @@
+# -------------------------------------------------------
+# Persistent Volume Claim (shared across workers & reducer)
+# -------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pi-results-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# =======================================================
+# RBAC so reducer can check worker pod status
+# =======================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pi-reducer-sa
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pi-reducer-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pi-reducer-binding
+subjects:
+  - kind: ServiceAccount
+    name: pi-reducer-sa
+roleRef:
+  kind: Role
+  name: pi-reducer-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# -------------------------------------------------------
+# Worker Job (4 Pods in parallel)
+# -------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-workers
+spec:
+  completions: 10
+  parallelism: 10
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: worker
+          image: pi-estimator
+          imagePullPolicy: Never
+          command: ["python", "/app/worker.py"]
+          env:
+            - name: POINTS_PER_WORKER
+              value: "40000000"
+            - name: RESULT_DIR
+              value: "/results"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: pi-results-pvc
+
+---
+# -------------------------------------------------------
+# Reducer Job (waits for all 4 workers to finish)
+# -------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-reducer
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: pi-reducer-sa    # <-- IMPORTANT!
+
+      initContainers:
+        - name: wait-for-workers
+          image: bitnami/kubectl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "[init] Waiting for 4 worker pods to complete..."
+              while true; do
+                succ=$(kubectl get pods -l job-name=pi-workers \
+                    --field-selector=status.phase=Succeeded \
+                    --no-headers | wc -l)
+                echo "[init] Workers finished: ${succ}/4"
+                if [ "$succ" -ge 4 ]; then
+                  echo "[init] All workers completed, starting reducer."
+                  break
+                fi
+                sleep 2
+              done
+
+      containers:
+        - name: reducer
+          image: pi-estimator
+          imagePullPolicy: Never
+          command: ["python", "/app/reducer.py"]
+          env:
+            - name: RESULT_DIR
+              value: "/results"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: pi-results-pvc
+

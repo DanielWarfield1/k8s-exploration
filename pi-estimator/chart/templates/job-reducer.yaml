@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.reducer.jobName }}
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ .Values.rbac.serviceAccount }}
+
+      initContainers:
+        - name: wait-for-workers
+          image: bitnami/kubectl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "[init] Waiting for {{ .Values.workers.count }} worker pods to complete..."
+              while true; do
+                succ=$(kubectl get pods -l job-name={{ .Values.workers.jobName }} \
+                    --field-selector=status.phase=Succeeded \
+                    --no-headers | wc -l)
+                echo "[init] Workers finished: ${succ}/{{ .Values.workers.count }}"
+                if [ "$succ" -ge {{ .Values.workers.count }} ]; then
+                  echo "[init] All workers completed, starting reducer."
+                  break
+                fi
+                sleep 2
+              done
+
+      containers:
+        - name: reducer
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["python", "/app/reducer.py"]
+          env:
+            - name: RESULT_DIR
+              value: "{{ .Values.resultDir }}"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.name }}

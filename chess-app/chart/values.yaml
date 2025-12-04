@@ -1,0 +1,22 @@
+backend:
+  image: chess-backend
+  imagePullPolicy: IfNotPresent
+  port: 80
+  replicas: 1
+
+worker:
+  image: chess-worker
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+
+frontend:
+  image: chess-frontend
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+
+redis:
+  host: redis-master   # Provided by the redis subchart
+
+ingress:
+  enabled: false
+  host: chess.local

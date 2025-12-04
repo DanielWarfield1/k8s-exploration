@@ -1,0 +1,13 @@
+dependencies:
+  - name: redis
+    version: "17.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+  - name: prometheus
+    version: "25.x.x"
+    repository: "https://prometheus-community.github.io/helm-charts"
+  - name: grafana
+    version: "6.x.x"
+    repository: "https://grafana.github.io/helm-charts"
+  - name: prometheus-node-exporter
+    version: "4.x.x"
+    repository: "https://prometheus-community.github.io/helm-charts"

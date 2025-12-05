@@ -1,0 +1,63 @@
+body {
+  font-family: sans-serif;
+  background: #eee;
+  padding: 20px;
+}
+
+#board-container {
+  position: relative;
+  width: 480px;
+  height: 480px;
+  margin-top: 20px;
+}
+
+#thinking-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 480px;
+  height: 480px;
+  background: rgba(0,0,0,0.45);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#thinking-overlay.show {
+  opacity: 1;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: 480px;
+  height: 480px;
+  border: 3px solid black;
+}
+
+.square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  user-select: none;
+}
+
+.light {
+  background: #f0d9b5;
+}
+
+.dark {
+  background: #b58863;
+}
+
+.square.selected {
+  outline: 3px solid red;
+}

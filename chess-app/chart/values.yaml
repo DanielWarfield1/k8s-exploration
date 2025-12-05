@@ -13,9 +13,19 @@ frontend:
   image: chess-frontend
   imagePullPolicy: IfNotPresent
   replicas: 1
+  service:
+    type: NodePort
+    nodePort: 30080
 
 redis:
-  host: redis-master   # Provided by the redis subchart
+  host: redis-master
+  auth:
+    enabled: false
+  image:
+    registry: docker.io
+    repository: bitnami/redis
+    tag: 7.2.4-debian-12-r0
+  architecture: standalone
 
 ingress:
   enabled: false

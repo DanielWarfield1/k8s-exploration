@@ -1,0 +1,29 @@
+backend:
+  image: chess-backend
+  imagePullPolicy: IfNotPresent
+  port: 80
+  replicas: 1
+  service:
+    type: NodePort
+    nodePort: 30081
+
+worker:
+  image: chess-worker
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+
+redis:
+  image:
+    tag: latest
+  master:
+    persistence:
+      enabled: false
+  replica:
+    persistence:
+      enabled: false
+  auth:
+    enabled: false
+
+ingress:
+  enabled: false
+  host: chess.local

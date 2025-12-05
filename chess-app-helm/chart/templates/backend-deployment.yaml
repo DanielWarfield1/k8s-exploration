@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chess.backendName" . }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "chess.backendName" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "chess.backendName" . }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.backend.port }}"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image }}"
+          imagePullPolicy: "{{ .Values.backend.imagePullPolicy }}"
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            - name: REDIS_HOST
+              value: "{{ .Release.Name }}-redis-master"

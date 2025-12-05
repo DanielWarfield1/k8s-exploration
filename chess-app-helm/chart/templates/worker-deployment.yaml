@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chess.workerName" . }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "chess.workerName" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "chess.workerName" . }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: worker
+          image: "{{ .Values.worker.image }}"
+          imagePullPolicy: "{{ .Values.worker.imagePullPolicy }}"
+          env:
+            - name: REDIS_HOST
+              value: "{{ .Release.Name }}-redis-master"
+          ports:
+            - containerPort: 9000
